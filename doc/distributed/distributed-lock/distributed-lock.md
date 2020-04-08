@@ -92,8 +92,35 @@ Redsson实现了单机版的分布式锁，支持多种部署架构（redis单�
 
 
 # 基于Zookeeper实现的分布式锁
-zookeeper数据结构类似于文件系统的目录结构，资源目录对应锁，目录下面的文件节点就是需要获取锁的客户端。
-zookeeper集群数据采用强一致性
+
+zookeeper的数据结构类似于文件系统，是一种树形结构。
+
+```
+    基于zookeeper实现分布式锁过程大致如下：
+    
+    客户端A从zookeeper中获取锁时，会在zookeeper数据模型中创建一个znode作为锁对象，
+    然后还会在该锁znode节点下创建一个子znode作为客户端A对象（这类子节点名称具有顺序性，每次新增的子节点名称都会在上一个子节点的基础上加1）。
+    当另一个客户端B来获取同一把锁时，同样会在锁znode节点下创建一个子节点，
+    同时客户端会判断锁节点下是否有子节点，如果没有，那么客户端B直接获取到锁，
+    如果有，那么客户端B就会创建一个Watcher监视上一个字节点的删除事件，
+    一旦上一个子节点客户端A被删除触发删除事件，那么就会通知客户端B去获取锁。
+```
+
+## 实现方式
+
+Curator是基于Zookeeper API实现的Java客户端，它可以简化我们对Zookeeper进行操作。
+它还封装了分布式锁功能，这样我们就不用再自己实现了。
+
+## 优点
+
+由于zookeeper集群基于Zab协议实现了强一致性，所以任何时候任一节点上的数据都是一样的。
+由于zookeeper server与zookeeper client使用了Session保持会话，客户端会定时发送心跳给服务端保持会话，
+当客户端宕机了，那么，对应zookeeper上的锁会释放掉。
+当服务端Leader宕机了，那么，zookeeper通过故障恢复会选举出新的Leader，并把它上面的数据同步给其他Follower。
+只要zookeeper集群同时宕机数量不超过一半，那么整个集群就依然可用，解决单点问题。
+Leader故障恢复过程中zookeeper集群是不用的。
+
+
 
 # 参考资料
 
@@ -101,3 +128,8 @@ zookeeper集群数据采用强一致性
 2. 【官方文档-中文】Redis分布式锁 - [http://www.redis.cn/topics/distlock.html](http://www.redis.cn/topics/distlock.html)
 3. 再有人问你分布式锁，这篇文章扔给他 - [https://juejin.im/post/5bbb0d8df265da0abd3533a5#heading-0](https://juejin.im/post/5bbb0d8df265da0abd3533a5#heading-0)
 4. 拜托，面试请不要再问我Redis分布式锁的实现原理 - [http://www.imooc.com/article/284859](http://www.imooc.com/article/284859)
+5. Zookeeper——一致性协议:Zab协议 - [https://www.jianshu.com/p/2bceacd60b8a](https://www.jianshu.com/p/2bceacd60b8a)
+6. Zookeeper 教程 - [https://www.w3cschool.cn/zookeeper/](https://www.w3cschool.cn/zookeeper/)
+7. 学习Redisson的不二之选 - [https://github.com/redisson/redisson/wiki/%E7%9B%AE%E5%BD%95](https://github.com/redisson/redisson/wiki/%E7%9B%AE%E5%BD%95)
+8. Redisson实现Redis分布式锁的N种姿势 - [https://www.jianshu.com/p/f302aa345ca8](https://www.jianshu.com/p/f302aa345ca8)
+9. Zookeeper到底是干嘛的 - [https://www.cnblogs.com/ultranms/p/9585191.html](https://www.cnblogs.com/ultranms/p/9585191.html)
