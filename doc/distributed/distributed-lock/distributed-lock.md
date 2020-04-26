@@ -113,7 +113,7 @@ Curator是基于Zookeeper API实现的Java客户端，它可以简化我们对Zo
 
 ## 优点
 
-由于zookeeper集群基于Zab协议实现了强一致性，所以任何时候任一节点上的数据都是一样的。
+由于zookeeper集群基于Zab协议实现了最终一致性，所以任何时候任一节点上的数据都是一样的。
 由于zookeeper server与zookeeper client使用了Session保持会话，客户端会定时发送心跳给服务端保持会话，
 当客户端宕机了，那么，对应zookeeper上的锁会释放掉。
 当服务端Leader宕机了，那么，zookeeper通过故障恢复会选举出新的Leader，并把它上面的数据同步给其他Follower。
